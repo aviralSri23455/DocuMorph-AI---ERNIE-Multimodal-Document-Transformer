@@ -1,0 +1,119 @@
+# ===========================================
+# PDF2Web AI Weaver - Backend Dependencies
+# ===========================================
+# Install: pip install -r requirements.txt
+# Then run: python -m spacy download en_core_web_lg
+
+# =============================================
+# Core Framework
+# =============================================
+fastapi
+uvicorn
+python-multipart
+pydantic
+pydantic-settings
+
+# =============================================
+# PDF Processing & OCR
+# =============================================
+PyMuPDF
+pdf2image
+Pillow
+
+# PaddleOCR (Local OCR - no cloud dependency)
+paddlepaddle
+paddleocr
+
+# =============================================
+# PII Detection (Secure Mode)
+# =============================================
+presidio-analyzer
+presidio-anonymizer
+spacy
+
+# =============================================
+# LLM API Client (Novita AI / OpenRouter)
+# =============================================
+httpx
+aiohttp
+tenacity
+
+# =============================================
+# Markdown & HTML Processing
+# =============================================
+markdown
+beautifulsoup4
+lxml
+
+# =============================================
+# File & Data Handling
+# =============================================
+aiofiles
+python-dotenv
+orjson
+python-dateutil
+
+# =============================================
+# Logging & Utilities
+# =============================================
+loguru
+tqdm
+rich
+
+# =============================================
+# Security & Validation
+# =============================================
+email-validator
+python-jose[cryptography]
+
+# =============================================
+# Deployment Integrations
+# =============================================
+PyGithub
+boto3
+
+# =============================================
+# WebSocket & Real-time
+# =============================================
+websockets
+sse-starlette
+
+# =============================================
+# MCP (Model Context Protocol)
+# =============================================
+mcp
+
+# =============================================
+# Lightweight UI (Optional)
+# =============================================
+streamlit
+
+
+# =============================================
+# Database & Caching
+# =============================================
+tinydb
+cachetools
+
+# =============================================
+# Data Processing
+# =============================================
+pandas
+numpy
+
+# =============================================
+# Additional Processing
+# =============================================
+opencv-python-headless
+ftfy
+unidecode
+babel
+pypdf
+jsonschema
+
+# =============================================
+# Testing
+# =============================================
+pytest
+pytest-asyncio
+pytest-cov

@@ -101,11 +101,15 @@ class ERNIEService:
     
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=5))
     async def _call_ernie(self, prompt: str, system_prompt: str = None) -> str:
-        """Make a call to ERNIE API."""
+        """Make a call to ERNIE API.
+        
+        Raises:
+            ValueError: If API credentials are not configured
+        """
         # Check for API key (third-party providers) or access token (Baidu direct)
         if not self.api_key and not self.access_token:
-            logger.warning("ERNIE credentials not configured, using mock response")
-            return self._mock_response(prompt)
+            logger.error("ERNIE credentials not configured")
+            raise ValueError("ERNIE API credentials not configured. Set ERNIE_API_KEY or ERNIE_ACCESS_TOKEN in .env file.")
         
         headers = {"Content-Type": "application/json"}
         
@@ -153,26 +157,6 @@ class ERNIEService:
             logger.error(f"ERNIE API call failed: {e}")
             raise
     
-    def _mock_response(self, prompt: str) -> str:
-        """Provide mock response when ERNIE is not configured or API fails."""
-        if "theme" in prompt.lower():
-            return '{"theme": "dark", "confidence": 0.85, "reasoning": "Default dark theme applied"}'
-        elif "semantic" in prompt.lower() or "component" in prompt.lower():
-            return '{"suggestions": []}'
-        elif "html" in prompt.lower():
-            return "<html><body><p>Mock HTML output</p></body></html>"
-        elif "table" in prompt.lower() or "chart" in prompt.lower():
-            return '{"tables": [], "charts": [], "quizzes": []}'
-        return "Mock response"
-    
-    async def _call_ernie_safe(self, prompt: str, system_prompt: str = None) -> str:
-        """Safe wrapper that falls back to mock on API failure."""
-        try:
-            return await self._call_ernie(prompt, system_prompt)
-        except Exception as e:
-            logger.warning(f"ERNIE API failed, using fallback: {e}")
-            return self._mock_response(prompt)
-    
     async def analyze_page_image(
         self, 
         image_path: Union[str, Path],
@@ -193,16 +177,20 @@ class ERNIEService:
             
         Returns:
             Dict with detected components and suggestions
+            
+        Raises:
+            ValueError: If API key is not configured
+            FileNotFoundError: If image file doesn't exist
         """
         if not self.api_key:
-            logger.warning("API key not configured, using text-only analysis")
-            return {"tables": [], "charts": [], "quizzes": [], "timelines": [], "maps": [], "confidence": 0.0}
+            logger.error("API key not configured - cannot perform vision analysis")
+            raise ValueError("ERNIE API key not configured. Set ERNIE_API_KEY in .env file.")
         
         # Read and encode image
         image_path = Path(image_path)
         if not image_path.exists():
             logger.error(f"Image not found: {image_path}")
-            return {"tables": [], "charts": [], "quizzes": [], "timelines": [], "maps": [], "confidence": 0.0}
+            raise FileNotFoundError(f"Image not found: {image_path}")
         
         with open(image_path, "rb") as f:
             img_data = f.read()
@@ -288,7 +276,7 @@ Respond with valid JSON:
             logger.error(f"Vision analysis failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            return {"tables": [], "charts": [], "quizzes": [], "timelines": [], "maps": [], "confidence": 0.0}
+            raise  # Re-raise instead of returning empty result
     
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=2, max=5))
     async def _call_vision(
@@ -297,9 +285,13 @@ Respond with valid JSON:
         image_base64: str,
         mime_type: str = "image/png"
     ) -> str:
-        """Make a multimodal vision API call to Novita AI."""
+        """Make a multimodal vision API call to Novita AI.
+        
+        Raises:
+            ValueError: If API key is not configured
+        """
         if not self.api_key:
-            return self._mock_response(prompt)
+            raise ValueError("ERNIE API key not configured. Set ERNIE_API_KEY in .env file.")
         
         headers = {
             "Content-Type": "application/json",
@@ -553,64 +545,124 @@ JSON response:"""
                 # Match detected components to blocks by page
                 page_blocks = [b for b in blocks if b.page == page_num]
                 
+                # Log block types for debugging
+                block_types = [f"{b.type.value}:{b.content[:30]}..." for b in page_blocks[:5]]
+                logger.debug(f"Page {page_num}: {len(page_blocks)} blocks, types: {block_types}")
+                logger.debug(f"Vision detected: tables={len(result.get('tables', []))}, "
+                           f"quizzes={len(result.get('quizzes', []))}, "
+                           f"timelines={len(result.get('timelines', []))}, "
+                           f"maps={len(result.get('maps', []))}")
+                
                 # Process detected tables → charts
+                # Accept TABLE or PARAGRAPH blocks (tables often extracted as paragraphs)
                 for table_info in result.get("tables", []):
                     chart_type = table_info.get("chart_type", "bar")
-                    # Find matching table block on this page
+                    # Find matching block on this page - prefer TABLE but accept PARAGRAPH
+                    target_block = None
                     for block in page_blocks:
                         if block.type == ContentType.TABLE:
-                            chart_map = {
-                                "bar": ComponentSuggestion.CHART_BAR,
-                                "line": ComponentSuggestion.CHART_LINE,
-                                "pie": ComponentSuggestion.CHART_PIE
-                            }
-                            suggestions.append(SemanticSuggestion(
-                                block_id=block.id,
-                                suggestion=chart_map.get(chart_type, ComponentSuggestion.CHART_BAR),
-                                confidence=result.get("confidence", 0.8),
-                                config={
-                                    "source": "vision",
-                                    "data_summary": table_info.get("data_summary", "")
-                                }
-                            ))
+                            target_block = block
                             break
+                    if not target_block and page_blocks:
+                        # Fall back to first paragraph with numeric content
+                        for block in page_blocks:
+                            if block.type == ContentType.PARAGRAPH and any(c.isdigit() for c in block.content):
+                                target_block = block
+                                break
+                        if not target_block:
+                            target_block = page_blocks[0]  # Last resort: first block
+                    
+                    if target_block:
+                        chart_map = {
+                            "bar": ComponentSuggestion.CHART_BAR,
+                            "line": ComponentSuggestion.CHART_LINE,
+                            "pie": ComponentSuggestion.CHART_PIE
+                        }
+                        suggestions.append(SemanticSuggestion(
+                            block_id=target_block.id,
+                            suggestion=chart_map.get(chart_type, ComponentSuggestion.CHART_BAR),
+                            confidence=result.get("confidence", 0.8),
+                            config={
+                                "source": "vision",
+                                "data_summary": table_info.get("data_summary", "")
+                            }
+                        ))
                 
                 # Process detected quizzes
+                # Accept LIST, PARAGRAPH, or any block with Q&A patterns
                 for quiz_info in result.get("quizzes", []):
+                    target_block = None
                     for block in page_blocks:
                         if block.type == ContentType.LIST:
-                            suggestions.append(SemanticSuggestion(
-                                block_id=block.id,
-                                suggestion=ComponentSuggestion.QUIZ,
-                                confidence=result.get("confidence", 0.8),
-                                config={
-                                    "source": "vision",
-                                    "type": quiz_info.get("type", "multiple_choice"),
-                                    "question_count": quiz_info.get("question_count", 1)
-                                }
-                            ))
+                            target_block = block
                             break
+                    if not target_block:
+                        # Look for Q&A patterns in paragraphs
+                        for block in page_blocks:
+                            content_lower = block.content.lower()
+                            if any(p in content_lower for p in ["q1", "q2", "question", "a)", "b)", "c)", "true", "false", "?"]):
+                                target_block = block
+                                break
+                    if not target_block and page_blocks:
+                        target_block = page_blocks[0]
+                    
+                    if target_block:
+                        suggestions.append(SemanticSuggestion(
+                            block_id=target_block.id,
+                            suggestion=ComponentSuggestion.QUIZ,
+                            confidence=result.get("confidence", 0.8),
+                            config={
+                                "source": "vision",
+                                "type": quiz_info.get("type", "multiple_choice"),
+                                "question_count": quiz_info.get("question_count", 1)
+                            }
+                        ))
                 
                 # Process detected timelines
+                # Accept TABLE, LIST, PARAGRAPH - timelines can be in any format
                 for timeline_info in result.get("timelines", []):
+                    target_block = None
+                    # Prefer blocks with date patterns
                     for block in page_blocks:
-                        if block.type in [ContentType.LIST, ContentType.PARAGRAPH]:
-                            suggestions.append(SemanticSuggestion(
-                                block_id=block.id,
-                                suggestion=ComponentSuggestion.TIMELINE,
-                                confidence=result.get("confidence", 0.75),
-                                config={
-                                    "source": "vision",
-                                    "event_count": timeline_info.get("event_count", 1)
-                                }
-                            ))
+                        content = block.content.lower()
+                        if any(p in content for p in ["2023", "2024", "2025", "date", "milestone", "phase", "q1", "q2", "q3", "q4"]):
+                            target_block = block
                             break
+                    if not target_block:
+                        for block in page_blocks:
+                            if block.type in [ContentType.TABLE, ContentType.LIST, ContentType.PARAGRAPH]:
+                                target_block = block
+                                break
+                    if not target_block and page_blocks:
+                        target_block = page_blocks[0]
+                    
+                    if target_block:
+                        suggestions.append(SemanticSuggestion(
+                            block_id=target_block.id,
+                            suggestion=ComponentSuggestion.TIMELINE,
+                            confidence=result.get("confidence", 0.75),
+                            config={
+                                "source": "vision",
+                                "event_count": timeline_info.get("event_count", 1)
+                            }
+                        ))
                 
                 # Process detected maps
+                # Accept any block type - location data can be anywhere
                 for map_info in result.get("maps", []):
+                    target_block = None
+                    # Prefer blocks with location keywords
                     for block in page_blocks:
+                        content_lower = block.content.lower()
+                        if any(loc in content_lower for loc in ["office", "address", "location", "city", "country", "street"]):
+                            target_block = block
+                            break
+                    if not target_block and page_blocks:
+                        target_block = page_blocks[0]
+                    
+                    if target_block:
                         suggestions.append(SemanticSuggestion(
-                            block_id=block.id,
+                            block_id=target_block.id,
                             suggestion=ComponentSuggestion.MAP,
                             confidence=result.get("confidence", 0.75),
                             config={

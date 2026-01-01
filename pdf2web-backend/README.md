@@ -266,12 +266,22 @@ if uploaded_file:
 | Feature | Description |
 |---------|-------------|
 | **Auto-Generated Graph** | AI analyzes document to create interactive knowledge graph |
+| **100% Real-Time** | Every graph is generated live using ERNIE AI (not mock data!) |
 | **Entity Extraction** | Detects concepts, people, dates, locations, sections |
 | **Relationship Detection** | Identifies references, builds-on, summarizes relationships |
-| **Collapsible Sidebar** | Clickable nodes jump to sections or highlight content |
-| **vis.js/Cytoscape.js** | Frontend-ready JSON for interactive visualization |
-| **User Approval** | Preview/simplify graph in co-design layer |
-| **Multi-Model Support** | Uses DeepSeek or ERNIE for entity/relation extraction |
+| **Interactive Visualization** | Force-directed graph with color-coded nodes |
+| **Click-to-Navigate** | Click any node to jump to that section |
+| **Simplify Mode** | Reduce graph to top 15 nodes for cleaner preview |
+| **vis.js Compatible** | Frontend-ready JSON for interactive visualization |
+| **Multi-Model Support** | Uses ERNIE for entity/relation extraction |
+
+#### Real-Time Proof (Actual Server Logs)
+```
+2026-01-01 22:16:07 | INFO | Generating knowledge graph for document 2bb7c96c-...
+2026-01-01 22:16:24 | INFO | Generated graph with 23 nodes and 16 edges
+POST /api/knowledge-graph/.../generate HTTP/1.1 200 OK
+POST /api/knowledge-graph/.../simplify HTTP/1.1 200 OK
+```
 
 ### 🎨 Co-Design Interaction Layer
 | Feature | Description |
@@ -525,11 +535,26 @@ pdf2web-backend/
 ### Knowledge Graph
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/knowledge-graph/{id}/generate` | Generate knowledge graph |
+| `POST` | `/api/knowledge-graph/{id}/generate` | Generate knowledge graph (real-time AI) |
 | `GET` | `/api/knowledge-graph/{id}` | Get generated graph |
-| `POST` | `/api/knowledge-graph/{id}/simplify` | Simplify for preview |
+| `POST` | `/api/knowledge-graph/{id}/simplify` | Simplify to top N nodes |
 | `GET` | `/api/knowledge-graph/{id}/sidebar-data` | Get sidebar navigation data |
 | `GET` | `/api/knowledge-graph/{id}/entity-types` | Get entity/relationship types |
+
+#### Knowledge Graph Response Example
+```json
+{
+  "document_id": "2bb7c96c-...",
+  "nodes": [
+    {"id": "entity_section_1", "label": "Introduction", "type": "section", "color": "#4e79a7"},
+    {"id": "entity_ai_0", "label": "Machine Learning", "type": "concept", "color": "#f28e2c"}
+  ],
+  "edges": [
+    {"from": "entity_section_1", "to": "entity_ai_0", "type": "defines"}
+  ],
+  "metadata": {"total_nodes": 23, "total_edges": 16}
+}
+```
 
 ---
 

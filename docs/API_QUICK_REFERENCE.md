@@ -163,6 +163,47 @@ ws.send(JSON.stringify({ action: 'subscribe', document_id: 'xxx' }))
 
 ---
 
+## 🧠 Knowledge Graph (Real-Time AI)
+
+### Generate Graph
+```bash
+POST /knowledge-graph/{document_id}/generate
+{ "use_ai": true }
+```
+**Returns:**
+```json
+{
+  "document_id": "xxx",
+  "nodes": [
+    {"id": "entity_section_1", "label": "Introduction", "type": "section", "color": "#4e79a7"},
+    {"id": "entity_ai_0", "label": "Machine Learning", "type": "concept", "color": "#f28e2c"}
+  ],
+  "edges": [
+    {"from": "entity_section_1", "to": "entity_ai_0", "type": "defines", "label": "defines"}
+  ],
+  "metadata": {"total_nodes": 23, "total_edges": 16, "entity_types": ["section", "concept", "person", "date"]}
+}
+```
+
+### Simplify Graph
+```bash
+POST /knowledge-graph/{document_id}/simplify
+{ "max_nodes": 15, "entity_types": ["section", "concept"] }
+```
+
+### Entity Types
+| Type | Color | Description |
+|------|-------|-------------|
+| section | #4e79a7 (Blue) | Document sections/headings |
+| concept | #f28e2c (Orange) | Key terms, theories |
+| person | #e15759 (Red) | People, authors |
+| date | #76b7b2 (Teal) | Dates, time periods |
+| location | #59a14f (Green) | Places, cities |
+| table | #edc949 (Yellow) | Data tables |
+| organization | #9c755f (Brown) | Companies, institutions |
+
+---
+
 ## 🔍 Transparency Endpoint
 ```bash
 GET /codesign/{document_id}/data-sent-to-cloud

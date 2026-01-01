@@ -30,7 +30,7 @@ Dark cyberpunk-themed React frontend for DocuMorph AI with complete backend inte
 │  │  /api/codesign/{id}/*     → Co-Design Layer APIs             │  │
 │  │  /api/export/{id}/*       → HTML/Markdown Export             │  │
 │  │  /api/deploy/{id}/*       → Netlify/Vercel/S3/GitHub         │  │
-│  │  /api/knowledge-graph/*   → Knowledge Graph Generation       │  │
+│  │  /api/knowledge-graph/*   → Knowledge Graph Generation (Real-time AI)  │  │
 │  │  /api/mcp/*               → MCP Tool Access                  │  │
 │  │  /api/realtime/ws         → WebSocket Real-time Updates      │  │
 │  └──────────────────────────────────────────────────────────────┘  │
@@ -129,7 +129,7 @@ pdf2web-frontend/
 │   │   │   ├── QuickActions.tsx       # Generate/Auto/Export
 │   │   │   ├── ThemeSelector.tsx      # 5 output themes
 │   │   │   ├── ModelSelector.tsx      # ERNIE/DeepSeek/MCP
-│   │   │   ├── KnowledgeGraph.tsx     # Graph visualization
+│   │   │   ├── KnowledgeGraph.tsx     # Interactive force-directed graph (real-time)
 │   │   │   ├── AccessibilityCheck.tsx # WCAG validation
 │   │   │   ├── AuditLogs.tsx          # Activity logging
 │   │   │   └── PluginsPanel.tsx       # Plugin management

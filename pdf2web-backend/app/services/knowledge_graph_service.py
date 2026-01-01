@@ -143,25 +143,41 @@ Max 15 entities. JSON response:"""
     
     async def _detect_relationships_with_ai(self, blocks: List[ContentBlock], entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         relationships = []
-        entity_list = "\n".join([f"- {e['id']}: {e['type']} - {e['label']}" for e in entities[:20]])
-        combined = "\n".join([b.content[:300] for b in blocks[:15]])
-        prompt = f"""Analyze relationships between document entities.
+        entity_list = "\n".join([f"- {e['id']}: {e['type']} - {e['label']}" for e in entities[:15]])
+        combined = "\n".join([b.content[:200] for b in blocks[:10]])
+        prompt = f"""Analyze relationships between these document entities.
 
 Entities:
 {entity_list}
 
 Document excerpt:
-{combined[:3000]}
+{combined[:2000]}
 
-Identify relationships: references, builds_on, summarizes, defines, related_to, contrasts, supports.
-Respond with JSON: [{{"source": "entity_id_1", "target": "entity_id_2", "type": "builds_on", "reason": "explanation"}}]
-Max 10 relationships. JSON response:"""
+Identify 5-8 relationships. Types: references, builds_on, summarizes, defines, related_to.
+Return ONLY a valid JSON array, no explanation:
+[{{"source": "entity_id", "target": "entity_id", "type": "builds_on"}}]"""
         try:
             response = await self._call_ai(prompt)
-            json_match = re.search(r'\[[\s\S]*\]', response)
+            # Try to extract JSON array, handle truncated responses
+            json_match = re.search(r'\[[\s\S]*?\]', response)
             if json_match:
-                for i, rel in enumerate(json.loads(json_match.group())[:10]):
-                    relationships.append({"id": f"rel_ai_{i}", "source": rel.get("source", ""), "target": rel.get("target", ""), "type": rel.get("type", "related_to"), "label": rel.get("type", "related_to").replace("_", " "), "reason": rel.get("reason", ""), "confidence": 0.75, "source_ai": True})
+                json_str = json_match.group()
+                # Fix common truncation issues - ensure valid JSON
+                try:
+                    parsed = json.loads(json_str)
+                except json.JSONDecodeError:
+                    # Try to fix truncated JSON by closing brackets
+                    json_str = re.sub(r',\s*$', '', json_str)  # Remove trailing comma
+                    if not json_str.endswith(']'):
+                        # Find last complete object
+                        last_brace = json_str.rfind('}')
+                        if last_brace > 0:
+                            json_str = json_str[:last_brace+1] + ']'
+                    parsed = json.loads(json_str)
+                
+                for i, rel in enumerate(parsed[:10]):
+                    if rel.get("source") and rel.get("target"):
+                        relationships.append({"id": f"rel_ai_{i}", "source": rel.get("source", ""), "target": rel.get("target", ""), "type": rel.get("type", "related_to"), "label": rel.get("type", "related_to").replace("_", " "), "reason": rel.get("reason", ""), "confidence": 0.75, "source_ai": True})
         except Exception as e:
             logger.warning(f"AI relationship detection failed: {e}")
         return relationships

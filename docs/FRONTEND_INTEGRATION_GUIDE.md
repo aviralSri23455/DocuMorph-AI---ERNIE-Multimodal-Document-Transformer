@@ -14,6 +14,20 @@ The backend now uses **vision models** (via Novita AI) to analyze PDF page image
 
 This happens automatically during semantic analysis - no frontend changes required!
 
+### 🧠 Knowledge Graph Navigation (100% Real-Time)
+Auto-generated interactive knowledge graphs that show how concepts relate:
+- **Entity Extraction**: Sections, concepts, people, dates, locations
+- **Relationship Detection**: references, builds_on, summarizes, defines
+- **Interactive Visualization**: Force-directed graph with color-coded nodes
+- **Click-to-Navigate**: Jump to any section by clicking nodes
+- **Simplify Mode**: Reduce to top 15 nodes for cleaner preview
+
+**Real Server Logs (Not Mock!):**
+```
+2026-01-01 22:16:07 | INFO | Generating knowledge graph for document 2bb7c96c-...
+2026-01-01 22:16:24 | INFO | Generated graph with 23 nodes and 16 edges
+```
+
 ---
 
 ## 📋 Table of Contents
@@ -225,6 +239,15 @@ All endpoints below are relative to this base URL.
 | `POST` | `/export/{document_id}/github-pages` | Deploy to GitHub |
 | `POST` | `/deploy/{document_id}/netlify` | Deploy to Netlify |
 | `POST` | `/deploy/{document_id}/s3` | Deploy to AWS S3 |
+
+### Knowledge Graph (Real-Time AI)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/knowledge-graph/{document_id}/generate` | Generate knowledge graph |
+| `GET` | `/knowledge-graph/{document_id}` | Get generated graph |
+| `POST` | `/knowledge-graph/{document_id}/simplify` | Simplify to top N nodes |
+| `GET` | `/knowledge-graph/{document_id}/sidebar-data` | Get sidebar navigation |
 | `POST` | `/deploy/{document_id}/vercel` | Deploy to Vercel |
 
 ---

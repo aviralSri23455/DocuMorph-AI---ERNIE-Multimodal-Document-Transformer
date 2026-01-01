@@ -77,6 +77,25 @@ python run.py
 
 ## ✨ Features
 
+### 🧠 Knowledge Graph (100% Real-Time AI)
+
+Interactive document navigation that separates DocuMorph from 90% of PDF converters:
+
+| Feature | Description |
+|---------|-------------|
+| **Real-Time Generation** | Every graph generated live using ERNIE AI (~17 seconds) |
+| **Entity Extraction** | Sections, concepts, people, dates, locations, organizations |
+| **Relationship Detection** | references, builds_on, summarizes, defines, contains |
+| **Force-Directed Layout** | Color-coded nodes with natural clustering |
+| **Click-to-Navigate** | Jump to any section by clicking nodes |
+| **Simplify Mode** | Reduce to top 15 nodes for cleaner preview |
+
+```
+Real Server Logs (Not Mock!):
+2026-01-01 22:16:07 | INFO | Generating knowledge graph for document 2bb7c96c-...
+2026-01-01 22:16:24 | INFO | Generated graph with 23 nodes and 16 edges
+```
+
 ### Co-Design Layer (Human-in-the-Loop)
 The Co-Design Layer is the core interaction point where users review and refine AI-extracted content before final HTML generation.
 

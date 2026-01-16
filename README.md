@@ -1,6 +1,6 @@
 # DocuMorph AI - ERNIE Multimodal Document Transformer
 
-> 🏆 **DEV.to Hackathon Entry** - Best ERNIE Multimodal Application using Novita API
+> 🏆 **DEV.to Hackathon Winner** - Best ERNIE Multimodal Application using Novita API
 
 Transform static PDFs into dynamic, responsive, and interactive HTML webpages with AI-powered semantic injection and multimodal vision analysis.
 
@@ -125,4 +125,6 @@ npm run dev
 1. **React Frontend** (Full Features): `npm run dev` in frontend
 2. **Streamlit App** (Python Native): `streamlit run examples/streamlit_app.py`
 3. **Built-in Dashboard** (No Install): Open http://localhost:8000/ui
+
+## Created by Rachana and Aviral 
 
